@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.crawler.dao.MovieMapper" >
+  <resultMap id="BaseResultMap" type="com.crawler.model.Movie" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="movieId" property="movieId" jdbcType="VARCHAR" />
+    <result column="movieName" property="movieName" jdbcType="VARCHAR" />
+    <result column="releaseDate" property="releaseDate" jdbcType="VARCHAR" />
+    <result column="duration" property="duration" jdbcType="INTEGER" />
+    <result column="createdAt" property="createdAt" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, movieId, movieName, releaseDate, duration, createdAt
+  </sql>
+  <select id="checkMovieId" resultType="java.lang.Integer"
+		parameterType="java.lang.String">
+		select count(id) from movie
+		where movieId = #{movieId,jdbcType=VARCHAR}
+	</select>
+  
+  <insert id="insertSelective" parameterType="com.crawler.model.Movie" >
+    insert into movie
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="movieId != null" >
+        movieId,
+      </if>
+      <if test="movieName != null" >
+        movieName,
+      </if>
+      <if test="releaseDate != null" >
+        releaseDate,
+      </if>
+      <if test="duration != null" >
+        duration,
+      </if>
+      createdAt
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="movieId != null" >
+        #{movieId,jdbcType=VARCHAR},
+      </if>
+      <if test="movieName != null" >
+        #{movieName,jdbcType=VARCHAR},
+      </if>
+      <if test="releaseDate != null" >
+        #{releaseDate,jdbcType=VARCHAR},
+      </if>
+      <if test="duration != null" >
+        #{duration,jdbcType=INTEGER},
+      </if>
+      now()
+    </trim>
+  </insert>
+</mapper>

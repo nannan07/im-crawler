@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.crawler.dao.MoviePersonMapper">
+	<resultMap id="BaseResultMap" type="com.crawler.model.MoviePerson">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="movieId" property="movieId" jdbcType="VARCHAR" />
+		<result column="name" property="name" jdbcType="VARCHAR" />
+		<result column="roleName" property="roleName" jdbcType="VARCHAR" />
+		<result column="typeId" property="typeId" jdbcType="VARCHAR" />
+		<result column="typeName" property="typeName" jdbcType="VARCHAR" />
+		<result column="orderNum" property="orderNum" jdbcType="INTEGER" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		id, movieId, name, roleName, typeId, typeName, orderNum
+	</sql>
+	<insert id="insertList" parameterType="java.util.List">
+		insert into movie_person (id, movieId, name, roleName, typeId,
+		typeName, orderNum) values
+		<foreach collection="list" index="index" item="item"
+			separator=",">
+			(#{item.id}, #{item.movieId}, #{item.name},
+			#{item.roleName}, #{item.typeId}, #{item.typeName}, #{item.orderNum})
+		</foreach>
+	</insert>
+</mapper>

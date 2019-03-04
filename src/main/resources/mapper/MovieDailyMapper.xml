@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.crawler.dao.MovieDailyMapper">
+	<resultMap id="BaseResultMap" type="com.crawler.model.MovieDaily">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="movieId" property="movieId" jdbcType="VARCHAR" />
+		<result column="movieName" property="movieName" jdbcType="VARCHAR" />
+		<result column="dailyDate" property="dailyDate" jdbcType="VARCHAR" />
+		<result column="releaseDate" property="releaseDate" jdbcType="VARCHAR" />
+		<result column="releaseDays" property="releaseDays" jdbcType="SMALLINT" />
+		<result column="dailyBox" property="dailyBox" jdbcType="DECIMAL" />
+		<result column="sumBox" property="sumBox" jdbcType="DECIMAL" />
+		<result column="weeklyBox" property="weeklyBox" jdbcType="DECIMAL" />
+		<result column="topOrder" property="topOrder" jdbcType="TINYINT" />
+		<result column="growthRate" property="growthRate" jdbcType="VARCHAR" />
+		<result column="createdAt" property="createdAt" jdbcType="TIMESTAMP" />
+		
+		<result column="num" property="num" jdbcType="TINYINT" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		id, movieId, movieName, dailyDate, releaseDate, releaseDays, dailyBox,
+		sumBox,weeklyBox,topOrder,
+		createdAt
+	</sql>
+	<select id="selectPreDailyBox" resultMap="BaseResultMap"  parameterType="java.util.Map">
+		select dailyBox
+		from movie_daily
+		where movieName = #{movieName} and  dailyDate = #{preday}
+	</select>
+	<select id="getMovieIdNULL" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from movie_daily
+		where movieId is null
+		ORDER BY dailyDate
+	</select>
+	<select id="selectMovieIdNull" resultMap="BaseResultMap" parameterType="java.util.Map">
+		select movieName from movie_daily where movieId is null 
+		AND dailyDate BETWEEN #{startDay} and #{stopDay}
+		ORDER BY dailyDate
+	</select>
+	<select id="selectMovieIdsForName" resultMap="BaseResultMap">
+		select md.movieName,md1.num,GROUP_CONCAT( DISTINCT md.movieId ORDER BY md.dailyDate) as movieId from movie_daily md INNER JOIN  
+		(select * from (select movieName,count(b.movieId) as num from (select a.movieName,a.movieId from movie_daily a GROUP BY a.movieName,a.movieId) b 
+			group by b.movieName order by num desc ) c WHERE c.num>1) md1 
+		ON md.movieName = md1.movieName
+		GROUP BY md.movieName
+	</select>
+	<select id="selectMovieNamesForId" resultMap="BaseResultMap">
+		SELECT md.movieId,md1.num,GROUP_CONCAT(DISTINCT md.movieName ORDER BY md.dailyDate) as movieName from movie_daily md INNER JOIN
+		(select * from 
+			(select movieId,count(b.movieName) as num from 
+				(select a.movieName,a.movieId from movie_daily a WHERE movieId is NOT NULL GROUP BY a.movieId,a.movieName) b GROUP BY b.movieId) c WHERE c.num>1) md1
+		on md.movieId = md1.movieId
+		GROUP BY md.movieId
+	</select>
+	<select id="selectMovieByCreateDate" resultMap="BaseResultMap"  parameterType="java.lang.String">
+		select id, movieId, movieName, dailyDate, releaseDate, releaseDays, sumBox
+		from movie_daily
+		where createdAt like concat('%','${_parameter}','%')
+		order by dailyDate
+	</select>
+	<insert id="insertMovieList" parameterType="java.util.List">
+		insert into movie_daily (id, movieId, movieName,dailyDate,
+		releaseDate, releaseDays,dailyBox, sumBox, weeklyBox, topOrder,growthRate,
+		createdAt)
+		values
+		<foreach collection="list" index="index" item="item"
+			separator=",">
+			(#{item.id}, #{item.movieId}, #{item.movieName}, #{item.dailyDate},
+			#{item.releaseDate}, #{item.releaseDays},
+			#{item.dailyBox}, #{item.sumBox}, #{item.weeklyBox}, #{item.topOrder}, #{item.growthRate}, now())
+		</foreach>
+	</insert>
+	<update id="updateByPrimaryKeySelective" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open=""
+			close="" separator=";">
+			<if test="item.movieId != null and item.movieId !=''">
+				update movie_daily set movieId = #{item.movieId} where id = #{item.id}
+			</if>
+		</foreach>
+	</update>
+	<update id="updateGrowthRate" parameterType="java.util.Map">
+		update movie_daily mm,
+(select md.movieId,md.dailyDate,ROUND((md.dailyBox-a.dailyBox)/a.dailyBox*100 ,2) as grow from movie_daily md LEFT JOIN (
+select movieId,dailyBox,growthRate from movie_daily WHERE dailyDate = #{preDay} ORDER BY dailyDate DESC limit 0,11) a 
+on md.movieId = a.movieId
+where md.dailyDate = #{toDay}) b
+set mm.growthRate = b.grow
+where mm.movieId = b.movieId and mm.dailyDate = b.dailyDate
+	</update>
+</mapper>

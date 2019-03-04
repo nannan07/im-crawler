@@ -1,0 +1,184 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<script src="https://cdn.bootcss.com/echarts/3.8.5/echarts.min.js"></script>
+</head>
+<body>
+	<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+
+	📅&nbsp;&nbsp;
+	<input id="vailyDate" type="month" onchange="vailyDateChange()"
+		style="margin: 10px" />
+	<div id="main"
+		style="height: 300px; width:300px;"></div>
+
+	<script type="text/javascript">
+		function getNowFormatDate() {
+			var date = new Date();
+			var seperator1 = "-";
+			var month = date.getMonth() + 1;
+			if (month >= 1 && month <= 9) {
+				month = "0" + month;
+			}
+			var currentdate = date.getFullYear() + seperator1 + month;
+			return currentdate;
+		}
+		function getNowDate() {
+			var date = new Date();
+			var seperator1 = "-";
+			var month = date.getMonth() + 1;
+			var strDate = date.getDate();
+			if (month >= 1 && month <= 9) {
+				month = "0" + month;
+			}
+			if (strDate >= 1 && strDate <= 9) {
+				strDate = "0" + strDate;
+			}
+			var currentdate = date.getFullYear() + seperator1 + month
+					+ seperator1 + strDate;
+			console.log(currentdate);
+			return currentdate;
+		}
+		// 模拟数据
+		function getVirtulData(year) {
+			year = year || '2017';
+			var date = +echarts.number.parseDate(year + '-01-01');
+			var end = +echarts.number.parseDate(year + '-12-31');
+			var dayTime = 3600 * 24 * 1000;
+			var data = [];
+			for (var time = date; time <= end; time += dayTime) {
+				data.push([ echarts.format.formatTime('yyyy-MM-dd', time),
+						Math.random() * 1 ]);
+			}
+			return data;
+		}
+		$(function() {
+			$("#vailyDate").val(getNowFormatDate());
+			vailyDateChange();
+		});
+		var myChart = echarts.init(document.getElementById('main'));
+
+		function vailyDateChange() {
+			var vailyDate = document.getElementById("vailyDate").value;
+			var dateList = getVirtulData(vailyDate.substring(0, 4));
+			var heatmapData = [];
+			var dataMap = {};
+			$
+					.ajax({
+						type : "GET",
+						url : '/validDate/select?startDate='
+								+ vailyDate.substring(0, 4)
+								+ vailyDate.substring(5, 7),
+						async : false,
+						contentType : "application/json; charset=utf-8",
+						success : function(data) {
+							dataMap = data;
+						}
+					});
+			var nowDate = getNowDate();
+			for (var i = 0; i < dateList.length; i++) {
+				var key = dateList[i][0];
+				if (key > nowDate) {
+					heatmapData.push([ dateList[i][0], 2 ]);
+					continue;
+				}
+				if (key == nowDate) {
+					heatmapData.push([ dateList[i][0], 2 ]);
+					continue;
+				}
+				key = key.substring(0, 4) + key.substring(5, 7)
+						+ key.substring(8, key.length);
+				var temp = dataMap[key];
+				if (temp == undefined) {
+					temp = 0;
+				}
+				heatmapData.push([ dateList[i][0], temp ]);
+			}
+			option = {
+				visualMap : {
+					show : false,
+					min : 0,
+					max : 2,
+					calculable : true,
+					seriesIndex : [ 1 ],
+					orient : 'horizontal',
+					left : 'center',
+					bottom : 20,
+					inRange : {
+						color : [ '#FF0000', '#00FF00', 'gray' ],
+						opacity : 0.3
+					},
+					controller : {
+						inRange : {
+							opacity : 0.5
+						}
+					}
+				},
+				calendar : [ {
+					left : 'center',
+					top : 'middle',
+					cellSize : 40,
+					yearLabel : {
+						show : false
+					},
+					orient : 'vertical',
+					dayLabel : {
+						firstDay : 1,
+						nameMap : 'cn'
+					},
+					monthLabel : {
+						show : false
+					},
+					range : vailyDate
+				} ],
+
+				series : [
+						{
+							type : 'scatter',
+							coordinateSystem : 'calendar',
+							symbolSize : 1,
+							label : {
+								normal : {
+									show : true,
+									formatter : function(params) {
+										var d = echarts.number
+												.parseDate(params.value[0]);
+										return d.getDate();
+									},
+									textStyle : {
+										color : '#000'
+									}
+								}
+							},
+							data : heatmapData
+						}, {
+							type : 'heatmap',
+							coordinateSystem : 'calendar',
+							data : heatmapData
+						} ]
+			};
+			myChart.setOption(option);
+		}
+		myChart.on('click', function(params) {
+			var date = params.value[0];
+			var flag = params.value[1];
+			if (flag == 0) {
+				date = date.substring(0, 4) + date.substring(5, 7)
+						+ date.substring(8, date.length);
+				confirmSelect(date);
+			}
+		});
+		function confirmSelect(date) {
+			alert("重新获取《" + date + "》日的信息");
+			$.ajax({
+					type : "GET",
+					url : "/crawler/movie?vailyDate=" + date,
+					async : false,
+					contentType : "application/json; charset=utf-8",
+					success : function(data) {
+						vailyDateChange();
+					}
+				});
+		}
+	</script>
+</body>
+</html>
